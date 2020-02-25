@@ -11,10 +11,24 @@ import com.alibaba.fastjson.JSON;
 public class JsonTest {
 
     public static void main(String[] args) {
-        String json = "{\"eventId\":1235,\"time\":\"2019/3/8 9:58:57\"}";
+//        int n = (54+10-1)/10;
+//        System.out.println(n);
+//        String json = "{\"eventId\":1235,\"time\":\"2019/3/8 9:58:57\"}";
+//
+//        BayonetEvent bayonetEvent = JSON.parseObject(json, BayonetEvent.class);
+//
+//        System.out.println(bayonetEvent);
 
-        BayonetEvent bayonetEvent = JSON.parseObject(json, BayonetEvent.class);
+        int pagesize = 2;
+        for (int i=1;i<pagesize;i++){
+            System.out.println(i);
+            if (1==i){
+                pagesize=30;
+            }
 
-        System.out.println(bayonetEvent);
+
+        }
+
+
     }
 }

@@ -1,18 +1,22 @@
 package cc.winfo.service.bayonet;
 
+import cc.winfo.service.bayonet.entity.BayonetEvent;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import javafx.animation.KeyFrame;
 import net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils;
 import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.InputStreamReader;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ImageDownload {
 
@@ -21,50 +25,82 @@ public class ImageDownload {
 
     static String path = "E:/bImgs";
 
+    Date startTime=null;
+
+    Date endTime = null;
     public static void main(String[] args) throws IOException {
         ImageDownload imageDownload = new ImageDownload();
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in ));
+        System.out.print("输入开始时间：\n");
+        String start = br.readLine();
+
+        System.out.print("输入结束时间：\n");
+        String end = br.readLine();
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+
+        try {
+            imageDownload.startTime= format.parse(start);
+            imageDownload.endTime= format.parse(end);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
 
         List<Long> bids = imageDownload.getBayonetIds();
 
-        logger.info("卡口ID获取成功：【{}】",bids);
+        logger.info("卡口ID获取成功：[{}]",bids);
 
         for (int i = 0; i < bids.size(); i++) {
             Long bid = bids.get(i);
             logger.info("正在获取卡口ID：【{}】",bid);
 
-            Map map = imageDownload.eventIds(bid, 1);
-            List<Long> longs = (List<Long>)map.get("list");
-            long count = (Long) map.get("count");
+            long pagesize = 2;
+            for (int page = 1; page < pagesize; page++) {
+                logger.info("正在处理分页数据 卡口ID：[{}]，第[{}]页",bid,page);
 
-            for (Long eventId : longs) {
-                List<String> c = imageDownload.downloadUrl(bid, eventId);
+                Map eventMap = imageDownload.events(bid, page);
 
-                for (String s : c) {
-                    String paths = path + "/" + bid + "/" +""+ eventId +"/";
-                    imageDownload.downloadImage(s,paths,s.substring(s.lastIndexOf("/")+1));
+                if (page==1){
+                    long count = (Long) eventMap.get("count");
+                    pagesize = (count+9)/10;
                 }
-            }
 
-            logger.info("==========================================进入分页=====================");
+                List<BayonetEvent> events = (List<BayonetEvent>)eventMap.get("list");
+                imageDownload.eventHandler(events,bid);
 
-            double pagesize = Math.ceil(count/10);
-            for (int j = 2; j < pagesize; j++) {
-                Map map2 = imageDownload.eventIds(bid, j);
-                List<Long> longs2 = (List<Long>)map2.get("list");
-
-
-                for (Long eventId : longs2) {
-                    List<String> c = imageDownload.downloadUrl(bid, eventId);
-
-                    for (String s : c) {
-                        String paths = path + "/" + bid + "/" + eventId +"/";
-                        imageDownload.downloadImage(s,paths,s.substring(s.lastIndexOf("/")+1));
-                    }
-                }
             }
 
         }
 
+    }
+
+    /**
+     *
+     * @param events 事件集合
+     * @param bid 卡口编号
+     */
+    public void eventHandler(List<BayonetEvent> events,long bid){
+        for (BayonetEvent event : events) {
+
+            Date time = event.getTime();
+
+            if (startTime!=null&& startTime.getTime()>time.getTime()){
+                continue;
+            }
+
+            if (endTime!=null&& endTime.getTime()<time.getTime()){
+                continue;
+            }
+            List<String> urls = this.downloadUrl(bid, event.getEventId());
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+            String timeStr = format.format(time);
+
+            for (String url : urls) {
+                String paths = path + "/" + bid + "/" +timeStr+"/"+ event +"/";
+                this.downloadImage(url,paths,url.substring(url.lastIndexOf("/")+1));
+            }
+        }
     }
 
 
@@ -174,13 +210,13 @@ public class ImageDownload {
      *
      *获取事件id
      */
-    public Map eventIds(Long mpId,int currentPage){
+    public Map events(Long mpId, int currentPage){
 
 
         logger.info("正在获取 [{}]卡口事件 第 [{}]页",mpId,currentPage);
 
         Call call = HttpUtil.get("http://198.18.101.49:8081/FsHsApi/getflowDetection?eventType=6&mpId="+mpId+"&pageSize=10&currentPage="+currentPage);
-        List<Long> res = new ArrayList<Long>();
+        List<BayonetEvent> res = new ArrayList<BayonetEvent>();
         Map<String, Object> re = new HashMap<String, Object>();
 
         try {
@@ -192,8 +228,8 @@ public class ImageDownload {
             JSONArray list = data.getJSONArray("List");
             for (int i = 0; i < list.size(); i++) {
                 JSONObject o = (JSONObject)list.get(i);
-
-                res.add(o.getLongValue("eventId"));
+                BayonetEvent bayonetEvent = o.toJavaObject(BayonetEvent.class);
+                res.add(bayonetEvent);
             }
 
             re.put("count",count);
