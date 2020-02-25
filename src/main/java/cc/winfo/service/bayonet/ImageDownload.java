@@ -228,7 +228,21 @@ public class ImageDownload {
             JSONArray list = data.getJSONArray("List");
             for (int i = 0; i < list.size(); i++) {
                 JSONObject o = (JSONObject)list.get(i);
-                BayonetEvent bayonetEvent = o.toJavaObject(BayonetEvent.class);
+
+
+
+                BayonetEvent bayonetEvent = new BayonetEvent();
+
+                bayonetEvent.setEventId(o.getLongValue("eventId"));
+                SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+
+
+                try {
+                    bayonetEvent.setTime(format.parse(o.getString("time")));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+//                BayonetEvent bayonetEvent = o.toJavaObject(BayonetEvent.class);
                 res.add(bayonetEvent);
             }
 
