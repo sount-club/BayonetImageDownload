@@ -97,7 +97,7 @@ public class ImageDownload {
             String timeStr = format.format(time);
 
             for (String url : urls) {
-                String paths = path + "/" + bid + "/" +timeStr+"/"+ event +"/";
+                String paths = path + "/" + bid + "/" +timeStr+"/"+ event.getEventId() +"/";
                 this.downloadImage(url,paths,url.substring(url.lastIndexOf("/")+1));
             }
         }
