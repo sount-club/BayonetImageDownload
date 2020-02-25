@@ -1,6 +1,7 @@
 package cc.winfo.service.bayonet;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +57,12 @@ public class HttpUtil {
 
     }
 
+    public static JSONObject json(Call call) throws IOException {
 
+        String resp = string(call);
+        return JSON.parseObject(resp);
+
+    }
 
 
     public static void dowload(Call call, final String path,final String destFileName){
@@ -88,7 +94,7 @@ public class HttpUtil {
                         sum += len;
                         int progress = (int) (sum * 1.0f / total * 100);
 
-                        logger.info("[{}]已下载：{}",destFileName,progress);
+                        logger.debug("[{}]已下载：{}",destFileName,progress);
                     }
                     logger.info("[{}]已下载完成",destFileName);
                     fos.flush();
